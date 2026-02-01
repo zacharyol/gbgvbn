@@ -1,1 +1,78 @@
-local part = Instance.new("part")
+local Workspace = game:GetService("Workspace")
+local Debris = game:GetService("Debris")
+
+-- Configuration
+local SPAWN_INTERVAL = 0.1 -- Time between spawns (seconds)
+local PART_LIFETIME = 10 -- How long parts exist before being removed (seconds)
+local SPAWN_RADIUS = 20 -- Radius around center to spawn parts
+local MAX_PARTS = 1000000000000 -- Maximum number of parts allowed at once
+local PART_SIZE = Vector3.new(2, 2, 2) -- Size of spawned parts
+local PART_COLOR = Color3.new(1, 0, 0) -- Red color
+local PART_MATERIAL = Enum.Material.Neon -- Material of parts
+
+-- Spawn center (can be modified)
+local SPAWN_CENTER = Vector3.new(0, 10, 0)
+
+-- Track spawned parts
+local spawnedParts = {}
+
+local function createRandomPart()
+	-- Check if we've reached the maximum number of parts
+	if #spawnedParts >= MAX_PARTS then
+		return
+	end
+	
+	-- Create random position within spawn radius
+	local randomX = math.random(-SPAWN_RADIUS, SPAWN_RADIUS)
+	local randomZ = math.random(-SPAWN_RADIUS, SPAWN_RADIUS)
+	local randomY = math.random(0, SPAWN_RADIUS)
+	local position = SPAWN_CENTER + Vector3.new(randomX, randomY, randomZ)
+	
+	-- Create the part
+	local part = Instance.new("Part")
+	part.Size = PART_SIZE
+	part.Color = PART_COLOR
+	part.Material = PART_MATERIAL
+	part.Position = position
+	part.Anchored = false
+	part.CanCollide = true
+	
+	-- Add some random rotation for visual variety
+	part.Orientation = Vector3.new(
+		math.random(0, 360),
+		math.random(0, 360),
+		math.random(0, 360)
+	)
+	
+	-- Parent to workspace
+	part.Parent = Workspace
+	
+	-- Add to tracking table
+	table.insert(spawnedParts, part)
+	
+	-- Schedule removal
+	Debris:AddItem(part, PART_LIFETIME)
+	
+	-- Remove from tracking table after lifetime
+	task.spawn(function()
+		task.wait(PART_LIFETIME)
+		for i, trackedPart in ipairs(spawnedParts) do
+			if trackedPart == part then
+				table.remove(spawnedParts, i)
+				break
+			end
+		end
+	end)
+end
+
+-- Main spawning loop
+local function startSpawning()
+	while true do
+		createRandomPart()
+		task.wait(SPAWN_INTERVAL)
+	end
+end
+
+-- Start the spamming
+print("Part spammer started! Spawning parts every " .. SPAWN_INTERVAL .. " seconds.")
+startSpawning()
